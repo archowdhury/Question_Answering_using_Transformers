@@ -14,42 +14,60 @@ with open(squad_dir + files[1], 'rb') as f:
     dev_raw = json.load(f)
 
 
-# Convert the relevant data into a list
-#--------------------------------------
+# Extract the relevant sections from the training data
+#-----------------------------------------------------
 
-def process_squad_data(squad_data):
+train_squad = []
 
-    new_squad = []
+for group in train_raw['data']:
 
-    for group in squad_data:
+    for para in group['paragraphs']:
+        context = para['context']
 
-        for para in group['paragraphs']:
-            context = para['context']
+        for qa_pair in para['qas']:
+            question = qa_pair['question']
 
-            for qa_pair in para['qas']:
-                question = qa_pair['question']
+            if 'answers' in qa_pair.keys() and len(qa_pair['answers']) > 0:
+                answer = qa_pair['answers'][0]['text']
+            elif 'probable_answers' in qa_pair.keys() and len(qa_pair['probable_answers']) > 0:
+                answer = qa_pair['answers'][0]['text']
+            else:
+                answer = None
 
-                if 'answers' in qa_pair.keys() and len(qa_pair['answers']) > 0:
-                    answer = qa_pair['answers'][0]['text']
-                elif 'probable_answers' in qa_pair.keys() and len(qa_pair['probable_answers']) > 0:
-                    answer = qa_pair['answers'][0]['text']
-                else:
-                    answer = None
+            train_squad.append({'question':question, 'context':context, 'answer':answer})
 
-                new_squad.append({'question':question, 'context':context, 'answer':answer})
 
-    return new_squad
+# Extract the relevant sections from the dev/val data
+#-----------------------------------------------------
 
-train_processed = process_squad_data(train_raw['data'])
-dev_processed = process_squad_data(dev_raw['data'])
+dev_squad = []
 
-dev_processed[0]
+for group in dev_raw['data']:
+
+    for para in group['paragraphs']:
+        context = para['context']
+
+        for qa_pair in para['qas']:
+            question = qa_pair['question']
+
+            if 'answers' in qa_pair.keys() and len(qa_pair['answers']) > 0:
+                answer = qa_pair['answers']
+            elif 'probable_answers' in qa_pair.keys() and len(qa_pair['probable_answers']) > 0:
+                answer = qa_pair['answers']
+            else:
+                answer = []
+
+            answer = [item['text'] for item in answer]
+            answer = list(set(answer))
+
+            for ans in answer:
+                dev_squad.append({'question':question, 'context':context, 'answer':ans})
 
 # Save the data as JSON
 #-----------------------
 
 with open(os.path.join(squad_dir, 'train.json'), 'w') as f:
-    json.dump(train_processed, f)
+    json.dump(train_squad, f)
 
 with open(os.path.join(squad_dir, 'dev.json'), 'w') as f:
-    json.dump(dev_processed, f)
+    json.dump(dev_squad, f)
